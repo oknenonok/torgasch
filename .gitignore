@@ -1,0 +1,6 @@
+node_modules
+logs/*.log
+config.*.js
+tickers.js
+invalid_dates.txt
+.netbeans.xml

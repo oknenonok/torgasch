@@ -1,0 +1,97 @@
+module.exports = {
+  db: {
+    user: 'postgres',
+    password: 'password',
+    database: 'torg',
+    tables: {
+      deals: 'deals_sandbox',
+    },
+  },
+  api: {
+    apiURL: 'https://api-invest.tinkoff.ru/openapi/sandbox/',
+    socketURL: 'wss://api-invest.tinkoff.ru/openapi/md/v1/md-openapi/ws',
+    secretToken: 'secretToken',
+    isSandbox: true,
+  },
+  currencies: [ 'RUB', 'USD' ],
+  excludeTickers: [ 'GOOG', 'GOOGL', 'AMZN', 'TRNFP', 'CHL', 'CHA', 'BA' ],
+  maxDeals: [12, 8, 4, 2],
+  strategy: {
+    RUB: {
+      stopLossPercent: 2,
+      initialFallPercent: 2,
+      daysFall: 3,
+      rules: [
+        {
+          percent: 0,
+          quantity: 1,
+          takeProfitPercent: 0.5,
+        },
+        {
+          percent: 0.5,
+          quantity: 3,
+          takeProfitPercent: 0.5,
+        },
+        {
+          percent: 1,
+          quantity: 5,
+          takeProfitPercent: 0.5,
+        },
+        {
+          percent: 1.5,
+          quantity: 8,
+          takeProfitPercent: 0.5,
+        },
+      ],
+    },
+    USD: {
+      stopLossPercent: 2,
+      initialFallPercent: 2,
+      daysFall: 3,
+      rules: [
+        {
+          percent: 0,
+          quantity: 1,
+          takeProfitPercent: 0.5,
+        },
+        {
+          percent: 0.5,
+          quantity: 3,
+          takeProfitPercent: 0.5,
+        },
+        {
+          percent: 1,
+          quantity: 5,
+          takeProfitPercent: 0.5,
+        },
+        {
+          percent: 1.5,
+          quantity: 8,
+          takeProfitPercent: 0.5,
+        },
+      ],
+    }
+  },
+  initialDealPrice: {
+    RUB: 25000,
+    USD: 350,
+  },
+  log4js: {
+    appenders: {
+      console: { type: 'console' },
+      checknew: { type: 'dateFile', filename: `${__dirname}/logs/checknew.log`, alwaysIncludePattern: true, daysToKeep: 60, keepFileExt: true },
+      checkexist: { type: 'dateFile', filename: `${__dirname}/logs/checkexist.log`, alwaysIncludePattern: true, daysToKeep: 60, keepFileExt: true },
+      order: { type: 'dateFile', filename: `${__dirname}/logs/order.log`, alwaysIncludePattern: true, daysToKeep: 60, keepFileExt: true },
+    },
+    categories: {
+      default: { appenders: [ 'console' ], level: 'debug' },
+      checknew: { appenders: [ 'console', 'checknew' ], level: 'debug' },
+      checkexist: { appenders: [ 'console', 'checkexist' ], level: 'debug' },
+      order: { appenders: [ 'console', 'order' ], level: 'debug' },
+    },
+  },
+  telegram: {
+    token: 'your_token',
+    chatId: 'your_chatId',
+  },
+};

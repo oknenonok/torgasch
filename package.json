@@ -1,0 +1,21 @@
+{
+  "name": "torgasch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "@tinkoff/invest-openapi-js-sdk": "^1.2.16",
+    "bufferutil": "^4.0.1",
+    "log4js": "^6.3.0",
+    "node-telegram-bot-api": "^0.50.0",
+    "pg": "^8.4.2",
+    "pg-native": "^3.0.0",
+    "utf-8-validate": "^5.0.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
