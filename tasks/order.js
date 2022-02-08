@@ -1,97 +1,73 @@
-const env = process.argv[2];
-const config = require(`./config.${env}.js`);
+const { timeout, formatPrice } = require('../funcs.js');
 
-const OpenAPI = require('@tinkoff/invest-openapi-js-sdk');
-const api = new OpenAPI({
-  apiURL: config.api.apiURL,
-  socketURL: config.api.socketURL,
-  secretToken: config.api.secretToken,
-});
-
-const { Client } = require('pg');
-const client = new Client({
-  user: config.db.user,
-  password: config.db.password,
-  database: config.db.database,
-});
-
-const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(config.telegram.token);
-
-const log4js = require('log4js');
-log4js.configure(config.log4js);
-const logger = log4js.getLogger('order');
-
-const { getRoundedPrice, timeout, formatPrice } = require('./funcs.js');
-
-const ticker = process.argv[3];
-const operation = process.argv[4];
-const limitPrice = +(process.argv[5]);
-const isBuy = (operation === 'Buy');
-const isSell = (operation === 'Sell');
-if (!isBuy && !isSell) {
-  logger.error('Invalid operation');
-  process.exit(3);
-}
-
-const runDate = (new Date()).toISOString();
-
-class NonCriticalError extends Error{};
-
-const waitForExecuteOrder = async function(orderId, props, iteration = 0) {
-  let orders;
-  try {
-    orders = await api.orders();
-  } catch (error) {
-    logger.error(error);
-    return await waitForExecuteOrder(orderId, props, iteration+1);
+module.exports.run = async function(api, client, bot, logger, args) {
+  const ticker = args[0];
+  const operation = args[1];
+  const limitPrice = +(args[2]);
+  const isBuy = (operation === 'Buy');
+  const isSell = (operation === 'Sell');
+  if (!isBuy && !isSell) {
+    logger.error('Invalid operation');
+    process.exit(3);
   }
-  logger.debug(orders);
-  let stillInQueue = false;
-  orders.forEach(order => {
-    if (order.orderId === orderId) {
-      stillInQueue = true;
+
+  const runDate = (new Date()).toISOString();
+
+  class NonCriticalError extends Error{};
+
+  const waitForExecuteOrder = async function(orderId, props, iteration = 0) {
+    let orders;
+    try {
+      orders = await api.orders();
+    } catch (error) {
+      logger.error(error);
+      return await waitForExecuteOrder(orderId, props, iteration+1);
     }
-  });
-  if (stillInQueue) {
-    if (props.maxIterations && (iteration >= props.maxIterations)) {
-      return false;
-    }
-    if (props.cancelPrice && props.figi) {
-      try {
-        let orderBook = await api.orderbookGet({
-          depth: 1,
-          figi: props.figi,
-        });
-        let buyPrice = orderBook.asks[0] ? orderBook.asks[0].price : 0;
-        if (buyPrice < props.cancelPrice) {
-          logger.info(`${operation} ${ticker}: price is less than ${props.cancelPrice}, cancelling`);
-          await api.cancelOrder({ orderId });
-          return false;
-        }
-      } catch (error) {
-        logger.error(error);
+    logger.debug(orders);
+    let stillInQueue = false;
+    orders.forEach(order => {
+      if (order.orderId === orderId) {
+        stillInQueue = true;
       }
+    });
+    if (stillInQueue) {
+      if (props.maxIterations && (iteration >= props.maxIterations)) {
+        return false;
+      }
+      if (props.cancelPrice && props.figi) {
+        try {
+          let orderBook = await api.orderbookGet({
+            depth: 1,
+            figi: props.figi,
+          });
+          let buyPrice = orderBook.asks[0] ? orderBook.asks[0].price : 0;
+          if (buyPrice < props.cancelPrice) {
+            logger.info(`${operation} ${ticker}: price is less than ${props.cancelPrice}, cancelling`);
+            await api.cancelOrder({ orderId });
+            return false;
+          }
+        } catch (error) {
+          logger.error(error);
+        }
+      }
+      await timeout(30000);
+      return await waitForExecuteOrder(orderId, props, iteration+1);
     }
-    await timeout(30000);
-    return await waitForExecuteOrder(orderId, props, iteration+1);
-  }
-  return true;
-};
+    return true;
+  };
 
-const getCurrentQuantityLots = async function(figi) {
-  let lots = 0;
-  let portfolio = await api.portfolio();
-  logger.debug(portfolio);
-  portfolio.positions.forEach(position => {
-    if (position.figi === figi) {
-      lots = position.lots;
-    }
-  });
-  return lots;
-};
+  const getCurrentQuantityLots = async function(figi) {
+    let lots = 0;
+    let portfolio = await api.portfolio();
+    logger.debug(portfolio);
+    portfolio.positions.forEach(position => {
+      if (position.figi === figi) {
+        lots = position.lots;
+      }
+    });
+    return lots;
+  };
 
-async function order() {
   let orderPlaced = false;
   await client.connect();
   const dbResult = await client.query(`SELECT * FROM ${config.db.tables.deals} WHERE ticker=$1 AND active=true`, [ticker]);
@@ -273,5 +249,3 @@ async function order() {
     process.exit(2);
   }
 }
-
-order();

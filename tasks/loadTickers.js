@@ -1,25 +1,5 @@
-const env = process.argv[2];
-const config = require(`./config.${env}.js`);
-
-const https = require('https');
-const fs = require('fs');
-
-const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(config.telegram.token);
-
-const OpenAPI = require('@tinkoff/invest-openapi-js-sdk');
-const api = new OpenAPI({
-  apiURL: config.api.apiURL,
-  socketURL: config.api.socketURL,
-  secretToken: config.api.secretToken,
-});
-
-const log4js = require('log4js');
-log4js.configure(config.log4js);
-const logger = log4js.getLogger('tickers');
-
-const { closestWorkDay } = require('./calendar.js');
-const { timeout } = require('./funcs.js');
+const { closestWorkDay } = require('../calendar.js');
+const { timeout } = require('../funcs.js');
 
 async function getPage() {
   return new Promise((resolve, reject) => {
@@ -37,7 +17,7 @@ async function getPage() {
   });
 }
 
-async function main() {
+module.exports.run = async function(api, client, bot, logger, args) {
   try {
     logger.info(`Start loading tickers`);
     const html = await getPage();
@@ -85,5 +65,3 @@ async function main() {
     process.exit(2);
   }
 }
-
-main();

@@ -1,42 +1,4 @@
-const env = process.argv[2];
-const config = require(`./config.${env}.js`);
-
-const { closestWorkDay, tradeActiveNow } = require('./calendar.js');
-const { timeout } = require('./funcs.js');
-if (!tradeActiveNow()) {
-  process.exit(0);
-}
-
-const OpenAPI = require('@tinkoff/invest-openapi-js-sdk');
-const api = new OpenAPI({
-  apiURL: config.api.apiURL,
-  socketURL: config.api.socketURL,
-  secretToken: config.api.secretToken,
-});
-
-const { Client } = require('pg');
-const client = new Client({
-  user: config.db.user,
-  password: config.db.password,
-  database: config.db.database,
-});
-
-const { spawn, execSync } = require('child_process');
-
-const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(config.telegram.token);
-
-const log4js = require('log4js');
-log4js.configure(config.log4js);
-const logger = log4js.getLogger('checkexist');
-
-let output = (''+execSync('ps aux | grep checkExist | grep Sl')).split('\n').filter(item => item);
-if (output.length > 2) {
-  logger.info('Process already running');
-  process.exit(0);
-}
-
-async function main() {
+module.exports.run = async function(api, client, bot, logger, args) {
   try {
     await client.connect();
     const res = await client.query(`SELECT * FROM ${config.db.tables.deals} WHERE active=true AND state='idle'`);
@@ -164,5 +126,3 @@ async function main() {
     process.exit(1);
   }
 };
-
-main();

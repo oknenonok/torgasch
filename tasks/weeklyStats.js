@@ -1,24 +1,4 @@
-const env = process.argv[2];
-const config = require(`./config.${env}.js`);
-
-const { Client } = require('pg');
-const client = new Client({
-  user: config.db.user,
-  password: config.db.password,
-  database: config.db.database,
-});
-
-const OpenAPI = require('@tinkoff/invest-openapi-js-sdk');
-const api = new OpenAPI({
-  apiURL: config.api.apiURL,
-  socketURL: config.api.socketURL,
-  secretToken: config.api.secretToken,
-});
-
-const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(config.telegram.token);
-
-async function main() {
+module.exports.run = async function(api, client, bot, logger, args) {
   await client.connect();
   const res = await client.query(`SELECT * FROM ${config.db.tables.deals} WHERE active=false AND EXTRACT(DAY FROM (NOW() - date_finish)) <= 7`);
   let totals = {};
@@ -55,5 +35,3 @@ async function main() {
   );
   process.exit(0);
 }
-
-main();
